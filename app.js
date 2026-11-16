@@ -486,6 +486,7 @@ function addVideo(pid, video) {
     if (!pl || pl.videos.some(v => v.id === video.id)) { showToast('Already in playlist'); return; }
     pl.videos.push({ ...video }); savePlaylists();
     showToast(`Added to "${pl.name}"`);
+    renderPlaylists();
     if (currentPlaylistId === pid) renderPlaylistVids(pl);
 }
 
