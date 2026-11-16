@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Player</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">▶</span>
+                <h1>YouTube Player</h1>
+            </div>
+            <p class="subtitle">Watch and organize YouTube videos -- ad-free</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Video Player (Top) -->
+            <section class="player-section hidden" id="playerSection">
+                <div class="video-container">
+                    <div id="videoPlayer"></div>
+                </div>
+                <div class="video-info-bar">
+                    <div class="video-info-details">
+                        <h3 id="vpTitle" class="vp-title"></h3>
+                        <span id="vpChannel" class="vp-channel"></span>
+                    </div>
+                    <div class="video-info-actions">
+                        <button id="addCurrentBtn" class="btn btn-small" title="Add to playlist">+ Add to Playlist</button>
+                    </div>
+                </div>
+                <div class="player-controls">
+                    <button id="prevBtn" class="control-btn" title="Previous">⟨⟨</button>
+                    <button id="playPauseBtn" class="control-btn control-btn-main" title="Play/Pause">►</button>
+                    <button id="nextBtn" class="control-btn" title="Next">⟩⟩</button>
+                    <button id="repeatBtn" class="control-btn control-btn-repeat" title="Repeat: Off">↻</button>
+                    <div class="player-progress">
+                        <span id="currentTime" class="time">0:00</span>
+                        <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0">
+                        <span id="totalTime" class="time">0:00</span>
+                    </div>
+                    <div class="player-volume">
+                        <span class="volume-icon" id="volumeIcon">◉</span>
+                        <input type="range" id="volumeBar" class="volume-bar" min="0" max="100" value="80">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bottom Panels -->
+            <div class="panels">
+                <!-- Playlists (Left) -->
+                <section class="panel playlists-panel">
+                    <h2 class="panel-title">
+                        <div class="panel-title-left">
+                            <span>My Playlists</span>
+                            <div class="view-toggle">
+                                <button id="listViewBtn" class="view-btn active" title="List view">☰</button>
+                                <button id="gridViewBtn" class="view-btn" title="Grid view">⊞</button>
+                            </div>
+                        </div>
+                        <div class="panel-title-actions">
+                            <div class="dropdown-wrap">
+                                <button id="importBtn" class="btn btn-small" title="Import">↓ Import ▾</button>
+                                <div id="importDropdown" class="dropdown-menu hidden">
+                                    <button class="dropdown-item" id="importFromDriveBtn">☁ From Google Drive</button>
+                                    <button class="dropdown-item" id="importFromUrlBtn">From YouTube URL</button>
+                                </div>
+                            </div>
+                            <button id="exportBtn" class="btn btn-small" title="Export to Google Drive">↑ Export</button>
+                            <button id="newPlaylistBtn" class="btn btn-small">+ New</button>
+                            <span id="syncStatus" class="sync-status"></span>
+                        </div>
+                    </h2>
+                    <div id="playlistList" class="playlist-list"></div>
+
+                    <!-- Playlist Videos -->
+                    <div id="playlistVideos" class="playlist-tracks hidden">
+                        <div class="playlist-header">
+                            <button id="backToPlaylists" class="btn btn-small">‹ Back</button>
+                            <h3 id="currentPlaylistName" title="Click to rename"></h3>
+                            <div class="playlist-actions">
+                                <button id="playAllBtn" class="btn btn-small btn-primary">► Play All</button>
+                                <button id="deletePlaylistBtn" class="btn btn-small btn-danger">Delete</button>
+                            </div>
+                        </div>
+                        <div id="playlistVideoList" class="track-list"></div>
+                    </div>
+                </section>
+
+                <!-- Search (Right) -->
+                <section class="panel results-panel">
+                    <h2 class="panel-title">
+                        <div class="panel-title-left">
+                            <span>Find Videos</span>
+                            <span id="resultCount" class="count"></span>
+                        </div>
+                    </h2>
+                    <div class="search-inline">
+                        <div class="search-bar">
+                            <input type="text" id="searchInput" placeholder="Search videos, channels..." autocomplete="off">
+                            <button id="searchBtn" class="btn btn-primary btn-small">Search</button>
+                        </div>
+                        <div class="sort-bar">
+                            <span class="sort-label">Sort:</span>
+                            <button class="sort-btn active" data-sort="relevance">Relevance</button>
+                            <button class="sort-btn" data-sort="date">Date</button>
+                            <button class="sort-btn" data-sort="views">Views</button>
+                        </div>
+                    </div>
+                    <div id="searchResults" class="track-list">
+                        <div class="empty-state">
+                            <span class="empty-icon">▶</span>
+                            <p>Search for videos to add to your playlists</p>
+                        </div>
+                    </div>
+                    <div id="loadingIndicator" class="loading hidden">
+                        <div class="spinner"></div>
+                        <p>Searching...</p>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- New Playlist Modal -->
+        <div id="playlistModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Create New Playlist</h3>
+                <input type="text" id="playlistNameInput" placeholder="Playlist name..." maxlength="50">
+                <div class="modal-actions">
+                    <button id="cancelPlaylistBtn" class="btn">Cancel</button>
+                    <button id="createPlaylistBtn" class="btn btn-primary">Create</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add to Playlist Modal -->
+        <div id="addToPlaylistModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Add to Playlist</h3>
+                <div id="playlistSelectList" class="playlist-select-list"></div>
+                <div class="modal-actions">
+                    <button id="cancelAddBtn" class="btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import from URL Modal -->
+        <div id="urlImportModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Import from YouTube</h3>
+                <p class="modal-description">
+                    Enter a YouTube video URL or playlist URL to import.
+                </p>
+                <input type="text" id="urlInput" placeholder="e.g. https://youtube.com/watch?v=... or playlist URL" maxlength="500">
+                <div id="urlImportStatus" class="import-status hidden"></div>
+                <div class="modal-actions">
+                    <button id="cancelUrlImportBtn" class="btn">Cancel</button>
+                    <button id="doUrlImportBtn" class="btn btn-primary">Import</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Dialog -->
+        <div id="confirmModal" class="modal hidden">
+            <div class="modal-content modal-confirm">
+                <h3 id="confirmTitle">Confirm</h3>
+                <p id="confirmMessage" class="confirm-message"></p>
+                <div class="modal-actions">
+                    <button id="confirmCancelBtn" class="btn">Cancel</button>
+                    <button id="confirmOkBtn" class="btn btn-danger">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <iframe id="safePlaceFrame" src="https://dat5ngon.github.io/safe-place/" style="display:none"></iframe>
+    <script src="app.js"></script>
+</body>
+</html>
