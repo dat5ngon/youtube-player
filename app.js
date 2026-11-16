@@ -1,13 +1,43 @@
 // YouTube Player -- watch and organize YouTube videos, ad-free
 // Invidious API for search (no key needed), YouTube IFrame Player API for playback.
 
-const INVIDIOUS_INSTANCES = [
-    'https://inv.nadeko.net',
-    'https://invidious.nerdvpn.de',
-    'https://invidious.jing.rocks',
-    'https://invidious.privacyredirect.com',
+// Fallback instances -- dynamically updated at startup from api.invidious.io
+let INVIDIOUS_INSTANCES = [
+    'https://yt.chocolatemoo53.com',
 ];
 let currentInstance = localStorage.getItem('video_inv_instance') || INVIDIOUS_INSTANCES[0];
+let instancesDiscovered = false;
+
+// Discover working Invidious instances at startup
+async function discoverInstances() {
+    try {
+        const r = await fetch('https://api.invidious.io/instances.json', { signal: AbortSignal.timeout(8000) });
+        const data = await r.json();
+        const candidates = data
+            .filter(([, info]) => info.api === true && info.type === 'https')
+            .map(([, info]) => info.uri);
+        if (candidates.length > 0) {
+            // Test top candidates in parallel (first 6), keep those that respond
+            const tests = candidates.slice(0, 6).map(async uri => {
+                try {
+                    const tr = await fetch(`${uri}/api/v1/search?q=test&type=video`, { signal: AbortSignal.timeout(5000) });
+                    if (tr.ok) return uri;
+                } catch { /* skip */ }
+                return null;
+            });
+            const results = await Promise.allSettled(tests);
+            const working = results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
+            if (working.length > 0) {
+                INVIDIOUS_INSTANCES = working;
+                if (!working.includes(currentInstance)) {
+                    currentInstance = working[0];
+                    localStorage.setItem('video_inv_instance', currentInstance);
+                }
+                instancesDiscovered = true;
+            }
+        }
+    } catch { /* use hardcoded fallback */ }
+}
 
 // State
 let playlists = loadPlaylists();
@@ -98,6 +128,7 @@ function init() {
     renderPlaylists();
     setupEvents();
     applyViewMode(playlistViewMode);
+    discoverInstances(); // async, runs in background
 }
 
 function setupEvents() {
@@ -169,34 +200,37 @@ function setupEvents() {
     });
 }
 
-// Search
+// Search -- tries all known instances before giving up
 async function searchVideos(query) {
     lastSearchQuery = query;
     searchPage = 1;
     showLoading(true);
     searchResults.innerHTML = '';
     resultCount.textContent = '';
-    try {
-        const videos = await invSearch(query, 1);
-        showLoading(false);
-        if (videos.length > 0) {
-            lastSearchResults = videos;
-            renderResults(videos);
-            resultCount.textContent = `${videos.length} videos`;
-            if (hasMoreResults) addLoadMore();
-        } else {
-            searchResults.innerHTML = '<div class="empty-state"><span class="empty-icon">--</span><p>No videos found.</p></div>';
-        }
-    } catch {
-        showLoading(false);
-        await rotateInstance();
+
+    // Try current instance first, then rotate through all others
+    const tried = new Set();
+    for (let attempt = 0; attempt < INVIDIOUS_INSTANCES.length; attempt++) {
+        if (tried.has(currentInstance)) { await rotateInstance(); continue; }
+        tried.add(currentInstance);
         try {
             const videos = await invSearch(query, 1);
             showLoading(false);
-            if (videos.length > 0) { lastSearchResults = videos; renderResults(videos); resultCount.textContent = `${videos.length} videos`; if (hasMoreResults) addLoadMore(); return; }
-        } catch { /* fall through */ }
-        searchResults.innerHTML = '<div class="error-state"><span class="error-icon">!</span><p>Search failed. Check connection.</p></div>';
+            if (videos.length > 0) {
+                lastSearchResults = videos;
+                renderResults(videos);
+                resultCount.textContent = `${videos.length} videos`;
+                if (hasMoreResults) addLoadMore();
+            } else {
+                searchResults.innerHTML = '<div class="empty-state"><span class="empty-icon">--</span><p>No videos found.</p></div>';
+            }
+            return; // success
+        } catch {
+            await rotateInstance();
+        }
     }
+    showLoading(false);
+    searchResults.innerHTML = '<div class="error-state"><span class="error-icon">!</span><p>All servers unavailable. Try again later.</p></div>';
 }
 
 async function loadMore() {
