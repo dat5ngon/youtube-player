@@ -1079,23 +1079,6 @@ body {
     background: var(--accent-glow);
 }
 
-/* Sync Status */
-.sync-status {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    letter-spacing: 0.3px;
-    flex: 1;
-    text-align: right;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.sync-status.sync-error {
-    color: var(--danger);
-}
-
 /* Import Status */
 .import-status {
     margin-bottom: 16px;

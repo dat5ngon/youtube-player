@@ -713,14 +713,13 @@ function spRequest(action, params = {}) {
 async function spAuth() { try { await spRequest('ping'); return true; } catch { return false; } }
 
 function handleSyncErr(err) {
-    setSyncStatus('');
     const msg = err.message || '';
     if (msg.includes('not authenticated') || msg.includes('Not authenticated')) {
-        showConfirm('Sign in Required', 'Sign in to SafePlace first for Google Drive backup. Open SafePlace?', () => window.open('https://dat5ngon.github.io/safe-place/', '_blank'), 'Open SafePlace');
+        showConfirm('Sign in Required', 'Sign in to SafePlace first.', () => window.open('https://dat5ngon.github.io/safe-place/', '_blank'), 'Open SafePlace');
     } else if (msg.includes('not responding')) {
-        showConfirm('Connection Issue', 'Could not connect to SafePlace. Try refreshing.', () => window.open('https://dat5ngon.github.io/safe-place/', '_blank'), 'Open SafePlace');
+        showConfirm('Connection Issue', 'Could not connect to SafePlace.', () => window.open('https://dat5ngon.github.io/safe-place/', '_blank'), 'Open SafePlace');
     } else {
-        showConfirm('Sync Error', msg || 'Unknown error.', () => {}, 'OK');
+        showToast('Sync failed: ' + (msg || 'unknown error'));
     }
 }
 
@@ -728,24 +727,21 @@ async function syncExport() {
     if (!playlists.length) { showToast('No playlists to export'); return; }
     const btn = $('exportBtn');
     try {
-        setSyncStatus('Checking sign-in...'); btn.disabled = true;
-        if (!await spAuth()) { setSyncStatus(''); showConfirm('Sign in Required', 'Sign in to SafePlace first.', () => window.open('https://dat5ngon.github.io/safe-place/', '_blank'), 'Open SafePlace'); btn.disabled = false; return; }
-        setSyncStatus('Backing up...');
+        showToast('Backing up...'); btn.disabled = true;
+        if (!await spAuth()) { showConfirm('Sign in Required', 'Sign in to SafePlace first.', () => window.open('https://dat5ngon.github.io/safe-place/', '_blank'), 'Open SafePlace'); btn.disabled = false; return; }
         await spRequest('save', { app: SP_APP, filename: SP_FILE, data: playlists });
-        setSyncStatus(`Backed up ${playlists.length} playlist${playlists.length !== 1 ? 's' : ''}`);
         showToast('Playlists backed up to Google Drive');
     } catch (e) { handleSyncErr(e); } finally { btn.disabled = false; }
 }
 
 async function syncImport() {
     try {
-        setSyncStatus('Checking sign-in...');
-        if (!await spAuth()) { setSyncStatus(''); showConfirm('Sign in Required', 'Sign in to SafePlace first.', () => window.open('https://dat5ngon.github.io/safe-place/', '_blank'), 'Open SafePlace'); return; }
-        setSyncStatus('Restoring...');
+        showToast('Restoring from Google Drive...');
+        if (!await spAuth()) { showConfirm('Sign in Required', 'Sign in to SafePlace first.', () => window.open('https://dat5ngon.github.io/safe-place/', '_blank'), 'Open SafePlace'); return; }
         const result = await spRequest('load', { app: SP_APP, filename: SP_FILE });
-        if (!result.data) { setSyncStatus(''); showToast('No playlists on Google Drive'); return; }
+        if (!result.data) { showToast('No playlists on Google Drive'); return; }
         const imported = result.data;
-        if (!Array.isArray(imported)) { setSyncStatus(''); showConfirm('Sync Error', 'Invalid backup data.', () => {}, 'OK'); return; }
+        if (!Array.isArray(imported)) { showToast('Invalid backup data'); return; }
         const ids = new Set(playlists.map(p => p.id));
         let added = 0, updated = 0;
         for (const pl of imported) {
@@ -756,14 +752,8 @@ async function syncImport() {
         savePlaylists(); renderPlaylists();
         const parts = []; if (added) parts.push(`${added} new`); if (updated) parts.push(`${updated} updated`);
         const summary = parts.length ? parts.join(', ') : 'No changes';
-        setSyncStatus(`Restored: ${summary}`); showToast(`Restore: ${summary}`);
+        showToast(`Restore: ${summary}`);
     } catch (e) { handleSyncErr(e); }
-}
-
-function setSyncStatus(msg, isErr) {
-    const el = $('syncStatus');
-    el.textContent = msg; el.className = 'sync-status' + (isErr ? ' sync-error' : '');
-    if (msg && !isErr) setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000);
 }
 
 // Start
