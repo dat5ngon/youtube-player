@@ -789,8 +789,8 @@ body {
 /* Grid View */
 .playlist-list.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
     padding: 4px;
     align-items: start;
 }
@@ -1199,5 +1199,33 @@ body {
     .video-info-bar {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    /* Grid view: force 2 columns on mobile portrait */
+    .playlist-list.grid-view {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .playlist-list.grid-view .playlist-item-text {
+        padding: 8px 10px;
+    }
+
+    .playlist-list.grid-view .playlist-name {
+        font-size: 0.78rem;
+    }
+
+    .playlist-list.grid-view .playlist-count {
+        font-size: 0.68rem;
+    }
+
+    .panel-title {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .panel-title-actions {
+        flex-wrap: wrap;
+        gap: 6px;
     }
 }
