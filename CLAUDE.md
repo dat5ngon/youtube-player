@@ -15,7 +15,7 @@ app.js       -- Invidious search, YouTube IFrame playback, playlists, Google Dri
 ### Key concepts
 
 - **Invidious API** -- searches YouTube videos via public Invidious instances. No API key required. Falls back to alternate instances on failure.
-- **YouTube IFrame Player API** -- embeds and controls video playback. Custom controls overlay the iframe (play/pause, seek, volume, prev/next).
+- **YouTube IFrame Player API** -- embeds and controls video playback. A new `YT.Player` instance is created for each video with the `videoId` in the constructor (YouTube's API now returns error 2 when using `loadVideoById()` on an empty player). Uses native YouTube controls (`controls: 1`) plus custom prev/next and repeat buttons.
 - **Playlists** -- stored in `localStorage` under key `video_playlists`. Each playlist has `id`, `name`, `videos[]`, `createdAt`.
 - **Google Drive sync** -- uses a hidden iframe embedding `https://dat5ngon.github.io/safe-place/`. Communication via `postMessage` (request/response with unique IDs). No OAuth in the video player itself.
 - **No build tools** -- vanilla HTML/CSS/JS. No npm, no bundlers.

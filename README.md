@@ -5,7 +5,7 @@ A browser-based video player that searches and plays YouTube videos using the [I
 ## Features
 
 - **Search** -- find YouTube videos by keyword, channel, or topic via Invidious API
-- **Play** -- stream videos with custom controls (play/pause, seek, volume, prev/next)
+- **Play** -- stream videos with YouTube native controls plus custom prev/next and repeat
 - **Playlists** -- create, rename, delete, and manage playlists (stored in localStorage)
 - **Grid / List view** -- toggle between grid and list layout for playlists
 - **Import from YouTube** -- import videos by URL or entire YouTube playlists

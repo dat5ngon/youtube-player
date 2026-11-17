@@ -90,6 +90,8 @@ const volumeIcon = $('volumeIcon');
 const playPauseBtn = $('playPauseBtn');
 
 // YouTube IFrame API
+let ytAPIReady = false;
+
 function loadYTAPI() {
     const s = document.createElement('script');
     s.src = 'https://www.youtube.com/iframe_api';
@@ -97,16 +99,45 @@ function loadYTAPI() {
 }
 
 window.onYouTubeIframeAPIReady = function() {
-    ytPlayer = new YT.Player('videoPlayer', {
-        height: '100%', width: '100%',
-        playerVars: { autoplay: 0, controls: 0, modestbranding: 1, rel: 0, fs: 1, iv_load_policy: 3, disablekb: 1 },
-        events: { onReady: onYTReady, onStateChange: onYTState, onError: onYTError }
-    });
+    ytAPIReady = true;
 };
 
-function onYTReady() {
-    ytReady = true;
-    ytPlayer.setVolume(parseInt(volumeBar.value, 10));
+// Create (or recreate) the player with a specific videoId baked into the constructor.
+// YouTube's IFrame API now requires videoId at construction time -- loadVideoById()
+// returns error 2 for many videos.
+function createPlayerForVideo(videoId) {
+    // Destroy previous player if it exists
+    if (ytPlayer) {
+        try { ytPlayer.destroy(); } catch {}
+        ytPlayer = null;
+    }
+    ytReady = false;
+
+    // Re-insert the target div (YT.Player replaces it with an iframe)
+    const container = document.querySelector('.video-container');
+    container.innerHTML = '<div id="videoPlayer"></div>';
+
+    ytPlayer = new YT.Player('videoPlayer', {
+        height: '100%', width: '100%',
+        videoId: videoId,
+        playerVars: {
+            autoplay: 1,
+            controls: 1,
+            modestbranding: 1,
+            rel: 0,
+            fs: 1,
+            iv_load_policy: 3,
+            enablejsapi: 1
+        },
+        events: {
+            onReady: function() {
+                ytReady = true;
+                ytPlayer.setVolume(parseInt(volumeBar.value, 10));
+            },
+            onStateChange: onYTState,
+            onError: onYTError
+        }
+    });
 }
 
 function onYTState(e) {
@@ -118,8 +149,23 @@ function onYTState(e) {
 
 function onYTError(e) {
     const c = e.data;
-    showToast(c === 101 || c === 150 ? 'Embed-restricted. Trying next...' : 'Video unavailable. Trying next...');
-    setTimeout(playNext, 1000);
+    if (c === 101 || c === 150) {
+        showToast('Embed-restricted. Trying next...');
+    } else if (c === 100) {
+        showToast('Video not found. Trying next...');
+    } else if (c === 5) {
+        showToast('Playback error. Trying next...');
+    } else {
+        showToast('Video unavailable (error ' + c + '). Trying next...');
+    }
+    // Avoid infinite loop: only skip to next if there are other videos in the queue
+    if (currentQueue.length > 1) {
+        setTimeout(playNext, 1000);
+    } else {
+        isPlaying = false;
+        updatePlayBtn();
+        stopProgress();
+    }
 }
 
 // Init
@@ -352,8 +398,26 @@ function playVideo(video) {
     if (!video || !video.id) { showToast('No video available'); return; }
     currentVideo = video;
     playerSection.classList.remove('hidden');
-    if (ytPlayer && ytReady) ytPlayer.loadVideoById(video.id);
-    else setTimeout(() => { if (ytPlayer && ytReady) ytPlayer.loadVideoById(video.id); }, 1000);
+    if (ytAPIReady) {
+        // Recreate the player with the new videoId each time
+        createPlayerForVideo(video.id);
+    } else {
+        // Wait for the YT API to load (up to 10 seconds)
+        let attempts = 0;
+        const maxAttempts = 20;
+        const waitForAPI = setInterval(() => {
+            attempts++;
+            if (ytAPIReady) {
+                clearInterval(waitForAPI);
+                if (currentVideo && currentVideo.id === video.id) {
+                    createPlayerForVideo(video.id);
+                }
+            } else if (attempts >= maxAttempts) {
+                clearInterval(waitForAPI);
+                showToast('Player failed to load. Try refreshing the page.');
+            }
+        }, 500);
+    }
     updateVideoInfo();
     highlightPlaying();
 }
