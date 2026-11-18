@@ -133,11 +133,30 @@ function createPlayerForVideo(videoId) {
             onReady: function() {
                 ytReady = true;
                 ytPlayer.setVolume(parseInt(volumeBar.value, 10));
+                // Force iframe to fill container -- YT API sets pixel attrs
+                fixPlayerSize();
             },
             onStateChange: onYTState,
             onError: onYTError
         }
     });
+
+    // Also fix size immediately after iframe is inserted (before onReady)
+    requestAnimationFrame(fixPlayerSize);
+}
+
+// Override YouTube's inline width/height attributes on the iframe
+function fixPlayerSize() {
+    const iframe = document.querySelector('.video-container iframe');
+    if (iframe) {
+        iframe.removeAttribute('width');
+        iframe.removeAttribute('height');
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.position = 'absolute';
+        iframe.style.top = '0';
+        iframe.style.left = '0';
+    }
 }
 
 function onYTState(e) {
@@ -150,22 +169,17 @@ function onYTState(e) {
 function onYTError(e) {
     const c = e.data;
     if (c === 101 || c === 150) {
-        showToast('Embed-restricted. Trying next...');
+        showToast('Embed-restricted');
     } else if (c === 100) {
-        showToast('Video not found. Trying next...');
+        showToast('Video not found');
     } else if (c === 5) {
-        showToast('Playback error. Trying next...');
+        showToast('Playback error');
     } else {
-        showToast('Video unavailable (error ' + c + '). Trying next...');
+        showToast('Video unavailable (error ' + c + ')');
     }
-    // Avoid infinite loop: only skip to next if there are other videos in the queue
-    if (currentQueue.length > 1) {
-        setTimeout(playNext, 1000);
-    } else {
-        isPlaying = false;
-        updatePlayBtn();
-        stopProgress();
-    }
+    isPlaying = false;
+    updatePlayBtn();
+    stopProgress();
 }
 
 // Init

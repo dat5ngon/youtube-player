@@ -40,6 +40,8 @@ body {
     margin: 0 auto;
     padding: 20px 24px;
     padding-bottom: 40px;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 /* Header */
@@ -95,6 +97,8 @@ body {
     border-radius: var(--radius-lg);
     overflow: hidden;
     margin-bottom: 20px;
+    max-width: 100%;
+    width: 100%;
 }
 
 .video-container {
@@ -102,9 +106,21 @@ body {
     width: 100%;
     padding-top: 56.25%; /* 16:9 aspect ratio */
     background: #000;
+    overflow: hidden;
 }
 
-.video-container iframe,
+/* YouTube IFrame API sets inline width/height attributes on the iframe;
+   !important overrides those to keep it within the container */
+.video-container iframe {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    border: none !important;
+}
+
 .video-container #videoPlayer {
     position: absolute;
     top: 0;
@@ -1164,6 +1180,7 @@ body {
     .player-controls {
         flex-wrap: wrap;
         gap: 6px;
+        padding: 10px 12px;
     }
 
     .player-progress {
@@ -1173,6 +1190,10 @@ body {
 
     .player-volume {
         min-width: unset;
+    }
+
+    .volume-bar {
+        width: 60px;
     }
 
     .panel {
